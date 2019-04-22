@@ -10,13 +10,13 @@ void main() => runApp(MaterialApp(
 
 class MyApp extends StatefulWidget {
   @override
-  _MyAppState createState() => new _MyAppState();
+  _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
   PageController _controller;
   int currentPage = 0;
-  bool lastPage = false;
+  bool isLastPage = false;
   AnimationController animationController;
   Animation<double> _scaleAnimation;
 
@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: new Stack(
+        body: Stack(
           fit: StackFit.expand,
           children: <Widget>[
             PageView.builder(
@@ -59,105 +59,35 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
               onPageChanged: (index) {
                 setState(() {
                   currentPage = index;
-                  if (currentPage == pageList.length - 1) {
-                    lastPage = true;
+                  isLastPage = currentPage == pageList.length - 1;
+                  if (isLastPage) {
                     animationController.forward();
                   } else {
-                    lastPage = false;
                     animationController.reset();
                   }
-                  print(lastPage);
                 });
+                print(isLastPage);
               },
-              itemBuilder: (context, index) {
-                return AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    var page = pageList[index];
-                    var delta;
-                    var y = 1.0;
-
-                    if (_controller.position.haveDimensions) {
-                      delta = _controller.page - index;
-                      y = 1 - delta.abs().clamp(0.0, 1.0);
-                    }
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Image.asset(page.imageUrl),
-                        Container(
-                          margin: EdgeInsets.only(left: 12.0),
-                          height: 100.0,
-                          child: Stack(
-                            children: <Widget>[
-                              Opacity(
-                                opacity: .10,
-                                child: GradientText(
-                                  page.title,
-                                  gradient: LinearGradient(
-                                      colors: pageList[index].titleGradient),
-                                  style: TextStyle(
-                                      fontSize: 100.0,
-                                      fontFamily: "Montserrat-Black",
-                                      letterSpacing: 1.0),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(top: 30.0, left: 22.0),
-                                child: GradientText(
-                                  page.title,
-                                  gradient: LinearGradient(
-                                      colors: pageList[index].titleGradient),
-                                  style: TextStyle(
-                                    fontSize: 70.0,
-                                    fontFamily: "Montserrat-Black",
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 34.0, top: 12.0),
-                          child: Transform(
-                            transform:
-                                Matrix4.translationValues(0, 50.0 * (1 - y), 0),
-                            child: Text(
-                              page.body,
-                              style: TextStyle(
-                                  fontSize: 20.0,
-                                  fontFamily: "Montserrat-Medium",
-                                  color: Color(0xFF9B9B9B)),
-                            ),
-                          ),
-                        )
-                      ],
-                    );
-                  },
-                );
-              },
+              itemBuilder: (context, index) => AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) => animatedPageViewBuilder(index),
+                  ),
             ),
             Positioned(
               left: 30.0,
               bottom: 55.0,
-              child: Container(
-                  width: 160.0,
-                  child: PageIndicator(currentPage, pageList.length)),
+              width: 160.0,
+              child: PageIndicator(currentPage, pageList.length),
             ),
             Positioned(
               right: 30.0,
               bottom: 30.0,
               child: ScaleTransition(
                 scale: _scaleAnimation,
-                child: lastPage
+                child: isLastPage
                     ? FloatingActionButton(
                         backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.arrow_forward,
-                          color: Colors.black,
-                        ),
+                        child: Icon(Icons.arrow_forward, color: Colors.black),
                         onPressed: () {},
                       )
                     : Container(),
@@ -166,6 +96,64 @@ class _MyAppState extends State<MyApp> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  }
+
+  Widget animatedPageViewBuilder(int index) {
+    PageModel page = pageList[index];
+    double delta;
+    double y = 1.0;
+
+    if (_controller.position.haveDimensions) {
+      delta = _controller.page - index;
+      y = delta.abs().clamp(0.0, 1.0);
+    }
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Image.asset(page.imageUrl),
+        Container(
+          margin: EdgeInsets.only(left: 12.0),
+          height: 100.0,
+          child: Stack(
+            children: <Widget>[
+              Opacity(
+                opacity: .10,
+                child: GradientText(
+                  page.title,
+                  gradient: LinearGradient(colors: page.titleGradient),
+                  style: TextStyle(
+                      fontSize: 100.0,
+                      fontFamily: "Montserrat-Black",
+                      letterSpacing: 1.0),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: 30.0, left: 22.0),
+                child: GradientText(
+                  page.title,
+                  gradient: LinearGradient(colors: page.titleGradient),
+                  style:
+                      TextStyle(fontSize: 70.0, fontFamily: "Montserrat-Black"),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.only(left: 34.0, top: 12.0),
+          transform: Matrix4.translationValues(0, 50.0 * y, 0),
+          child: Text(
+            page.body,
+            style: TextStyle(
+                fontSize: 20.0,
+                fontFamily: "Montserrat-Medium",
+                color: Color(0xFF9B9B9B)),
+          ),
+        )
+      ],
     );
   }
 }
